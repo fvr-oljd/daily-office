@@ -1,399 +1,509 @@
-<script type="text/babel">
-    const { useState, useEffect } = React;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Office - Prayer & Devotion</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e3a8a">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .serif {
+            font-family: 'Crimson Pro', Georgia, serif;
+        }
+        .prayer-content {
+            font-family: 'Crimson Pro', Georgia, serif;
+            font-size: 1.0625rem;
+            line-height: 1.75;
+            letter-spacing: 0.01em;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 50%, #93c5fd 100%);
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .shadow-custom {
+            box-shadow: 0 10px 40px -10px rgba(30, 58, 138, 0.25);
+        }
+        .section-divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+            margin: 2rem 0;
+        }
+        .section-header {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.3);
+        }
+        .fade-in {
+            animation: fadeIn 0.6s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .loading-spinner {
+            border-color: rgba(37, 99, 235, 0.1);
+            border-top-color: #2563eb;
+        }
+        input[type="date"] {
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        .control-card {
+            transition: all 0.2s ease;
+        }
+        .control-card:focus-within {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px -5px rgba(30, 58, 138, 0.25);
+        }
+        .verse-reference {
+            color: #1e40af;
+            font-style: italic;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div id="root"></div>
     
-    function DailyOffice() {
-        const [selectedDate, setSelectedDate] = useState('');
-        const [timeOfDay, setTimeOfDay] = useState('morning');
-        const [officeContent, setOfficeContent] = useState(null);
-        const [loading, setLoading] = useState(false);
-        const [error, setError] = useState('');
-        const [devotionalFile, setDevotionalFile] = useState(null);
-        const [officeFile, setOfficeFile] = useState(null);
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        function DailyOffice() {
+            const [selectedDate, setSelectedDate] = useState('');
+            const [timeOfDay, setTimeOfDay] = useState('morning');
+            const [officeContent, setOfficeContent] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+            const [devotionalFile, setDevotionalFile] = useState(null);
+            const [officeFile, setOfficeFile] = useState(null);
 
-        useEffect(() => {
-            const now = new Date();
-            const hours = now.getHours();
-            const dateStr = now.toISOString().split('T')[0];
-            
-            setSelectedDate(dateStr);
-            setTimeOfDay(hours >= 12 ? 'evening' : 'morning');
-            
-            loadFiles();
-        }, []);
+            useEffect(() => {
+                const now = new Date();
+                const hours = now.getHours();
+                const dateStr = now.toISOString().split('T')[0];
+                
+                setSelectedDate(dateStr);
+                setTimeOfDay(hours >= 12 ? 'evening' : 'morning');
+                
+                loadFiles();
+            }, []);
 
-        const loadFiles = async () => {
-            try {
-                const [devotionalRes, officeRes] = await Promise.all([
-                    fetch('devotional.txt'),
-                    fetch('office.txt')
-                ]);
-                
-                if (!devotionalRes.ok || !officeRes.ok) {
-                    throw new Error('Failed to load files');
-                }
-                
-                const devotionalText = await devotionalRes.text();
-                const officeText = await officeRes.text();
-                
-                setDevotionalFile(devotionalText);
-                setOfficeFile(officeText);
-            } catch (err) {
-                console.error('Error loading files:', err);
-                setError('Failed to load content files. Please refresh the page.');
-            }
-        };
-
-        const getDayOfWeek = (dateStr) => {
-            const date = new Date(dateStr);
-            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            return days[date.getDay()];
-        };
-
-        const parseOfficeSection = (content, sectionName, period) => {
-            const lines = content.split('\n');
-            let inSection = false;
-            let result = [];
-            const allHeadings = ['Thanksgiving', 'Forgiveness', 'Meditation', 'Benediction'];
-            
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                
-                if (line === sectionName) {
-                    inSection = true;
-                    continue;
-                }
-                
-                if (inSection && allHeadings.includes(line) && line !== sectionName) {
-                    break;
-                }
-                
-                if (inSection && line.startsWith(period.toUpperCase())) {
-                    const prayerLine = line.substring(period.length + 3);
-                    let verseLines = [];
-                    
-                    for (let j = i + 1; j < lines.length; j++) {
-                        const nextLine = lines[j].trim();
-                        if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || 
-                            (nextLine === '' && lines[j+1]?.trim() === '')) {
-                            break;
-                        }
-                         if (allHeadings.includes(nextLine)) {
-                            break;
-                        }
-                        if (nextLine) {
-                            verseLines.push(nextLine);
-                        }
-                    }
-                    
-                    result.push({
-                        title: prayerLine,
-                        text: verseLines.join(' ')
-                    });
-                }
-            }
-            
-            return result;
-        };
-
-
-        const parseDailyFocus = (content, dayName, period) => {
-            const sectionName = `${dayName} Focus:`;
-            const lines = content.split('\n');
-            let inSection = false;
-            let result = [];
-            
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                
-                if (line.startsWith(sectionName)) {
-                    inSection = true;
-                    continue;
-                }
-                
-                if (inSection && line.startsWith(period.toUpperCase())) {
-                    const prayerLine = line.substring(period.length + 3);
-                    let verseLines = [];
-                    
-                    for (let j = i + 1; j < lines.length; j++) {
-                        const nextLine = lines[j].trim();
-                        // THIS LINE IS NOW FIXED with optional chaining '?.'
-                        if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || 
-                            (nextLine === '' && lines[j+1]?.trim().includes('Focus:'))) {
-                            break;
-                        }
-                        if (nextLine) {
-                            verseLines.push(nextLine);
-                        }
-                    }
-                    
-                    result.push({
-                        title: prayerLine,
-                        text: verseLines.join(' ')
-                    });
-                }
-                
-                if (inSection && line.includes('Focus:') && !line.startsWith(sectionName)) {
-                    break;
-                }
-            }
-            
-            return result;
-        };
-
-        const parseDevotional = (content, monthName, day, period) => {
-            const searchPattern = `${monthName} ${day} ${period}`;
-            const lines = content.split('\n');
-            let foundIndex = -1;
-            
-            for (let i = 0; i < lines.length; i++) {
-                if (lines[i].trim() === searchPattern) {
-                    foundIndex = i;
-                    break;
-                }
-            }
-            
-            if (foundIndex === -1) return null;
-            
-            let devotionalLines = [];
-            const datePattern = /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d+\s+(AM|PM)$/;
-            
-            for (let i = foundIndex + 1; i < lines.length; i++) {
-                if (datePattern.test(lines[i].trim())) break;
-                devotionalLines.push(lines[i]);
-            }
-            
-            const text = devotionalLines.join('\n').trim();
-            const textLines = text.split('\n').filter(line => line.trim());
-            return {
-                title: textLines[0] || '',
-                text: textLines.slice(1).join('\n\n')
-            };
-        };
-
-        useEffect(() => {
-            if (!selectedDate || !devotionalFile || !officeFile) return;
-
-            setLoading(true);
-            setError('');
-            
-            setTimeout(() => {
+            const loadFiles = async () => {
                 try {
-                    const date = new Date(selectedDate);
-                    let month = date.getMonth();
-                    let day = date.getDate();
+                    const [devotionalRes, officeRes] = await Promise.all([
+                        fetch('devotional.txt'),
+                        fetch('office.txt')
+                    ]);
                     
-                    if (month === 1 && day === 29) {
-                        day = 28;
+                    if (!devotionalRes.ok || !officeRes.ok) {
+                        throw new Error('Failed to load files');
                     }
                     
-                    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                                       'July', 'August', 'September', 'October', 'November', 'December'];
-                    const monthName = monthNames[month];
-                    const period = timeOfDay === 'morning' ? 'AM' : 'PM';
-                    const dayName = getDayOfWeek(selectedDate);
+                    const devotionalText = await devotionalRes.text();
+                    const officeText = await officeRes.text();
                     
-                    const thanksgiving = parseOfficeSection(officeFile, 'Thanksgiving', timeOfDay);
-                    const forgiveness = parseOfficeSection(officeFile, 'Forgiveness', timeOfDay);
-                    const meditation = parseOfficeSection(officeFile, 'Meditation', timeOfDay);
-                    const benediction = parseOfficeSection(officeFile, 'Benediction', timeOfDay);
-                    const dailyFocus = parseDailyFocus(officeFile, dayName, timeOfDay);
-                    const devotional = parseDevotional(devotionalFile, monthName, day, period);
-                    
-                    if (!devotional) {
-                        throw new Error('Could not load devotional for this date');
-                    }
-                    
-                    setOfficeContent({
-                        thanksgiving,
-                        forgiveness,
-                        meditation,
-                        devotional,
-                        dailyFocus,
-                        dayName,
-                        benediction
-                    });
-                    
+                    setDevotionalFile(devotionalText);
+                    setOfficeFile(officeText);
                 } catch (err) {
-                    setError('Unable to load Daily Office content.');
-                    console.error(err);
-                } finally {
-                    setLoading(false);
+                    console.error('Error loading files:', err);
+                    setError('Failed to load content files. Please refresh the page.');
                 }
-            }, 400);
-        }, [selectedDate, timeOfDay, devotionalFile, officeFile]);
+            };
 
-        const renderPrayer = (prayer) => (
-            <div key={prayer.title} className="mb-6 fade-in">
-                <h4 className="serif text-lg font-semibold text-blue-900 mb-3">{prayer.title}</h4>
-                <div className="prayer-content text-gray-800">
-                    <p className="whitespace-pre-line leading-relaxed">{prayer.text}</p>
-                </div>
-            </div>
-        );
+            const getDayOfWeek = (dateStr) => {
+                const date = new Date(dateStr);
+                const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                return days[date.getDay()];
+            };
 
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                           'July', 'August', 'September', 'October', 'November', 'December'];
-        const currentDate = selectedDate ? new Date(selectedDate) : null;
-        const formattedDate = currentDate ? 
-            `${monthNames[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}` : '';
+            // REPLACE your current parseOfficeSection with this function
+const parseOfficeSection = (content, sectionName, period) => {
+  const lines = content.split('\n');
+  let inSection = false;
+  let result = [];
+  // all top-level Daily Collects headings we expect in office.txt
+  const sectionHeaders = ['Thanksgiving', 'Forgiveness', 'Meditation', 'Benediction', 'Daily Collects'];
 
-        return (
-            <div className="min-h-screen p-4 md:p-8 py-6 md:py-12">
-                <div className="max-w-4xl mx-auto">
-                    {/* Header */}
-                    <div className="text-center mb-8">
-                        <h1 className="serif text-5xl md:text-6xl font-bold text-blue-950 mb-3 tracking-tight">
-                            Daily Office
-                        </h1>
-                        <div className="h-1 w-24 mx-auto bg-gradient-to-r from-transparent via-blue-700 to-transparent mb-3"></div>
-                        <p className="text-blue-800 text-sm md:text-base tracking-wide uppercase font-medium">
-                            Prayer & Devotion
-                        </p>
-                    </div>
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
 
-                    {/* Controls */}
-                    <div className="glass-effect rounded-2xl shadow-custom p-6 mb-6">
-                        <div className="grid md:grid-cols-2 gap-5">
-                            <div className="control-card">
-                                <label className="block text-sm font-semibold text-blue-900 mb-3 tracking-wide">
-                                    📅 DATE
-                                </label>
-                                <input
-                                    type="date"
-                                    value={selectedDate}
-                                    onChange={(e) => setSelectedDate(e.target.value)}
-                                    className="w-full px-4 py-3.5 text-base bg-white border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-blue-900 font-medium"
-                                />
-                            </div>
-
-                            <div className="control-card">
-                                <label className="block text-sm font-semibold text-blue-900 mb-3 tracking-wide">
-                                    ⏰ TIME
-                                </label>
-                                <select
-                                    value={timeOfDay}
-                                    onChange={(e) => setTimeOfDay(e.target.value)}
-                                    className="w-full px-4 py-3.5 text-base bg-white border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-blue-900 font-medium cursor-pointer"
-                                >
-                                    <option value="morning">Morning Office</option>
-                                    <option value="evening">Evening Office</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Content */}
-                    {loading && (
-                        <div className="glass-effect rounded-2xl shadow-custom p-12 text-center">
-                            <div className="loading-spinner rounded-full h-14 w-14 border-4 border-t-4 animate-spin mx-auto mb-4"></div>
-                            <p className="text-blue-700 font-medium">Preparing your Daily Office...</p>
-                        </div>
-                    )}
-
-                    {error && (
-                        <div className="glass-effect rounded-2xl shadow-custom p-6">
-                            <div className="bg-red-50 border-2 border-red-300 text-red-800 px-5 py-4 rounded-xl text-sm md:text-base font-medium">
-                                {error}
-                            </div>
-                        </div>
-                    )}
-
-                    {!loading && !error && officeContent && (
-                        <div className="glass-effect rounded-2xl shadow-custom p-6 md:p-10 fade-in">
-                            <div className="text-center mb-8">
-                                <h2 className="serif text-2xl md:text-3xl font-bold text-blue-950 mb-2">
-                                    {timeOfDay === 'morning' ? 'Morning' : 'Evening'} Office
-                                </h2>
-                                <p className="text-blue-700 font-medium">{formattedDate}</p>
-                            </div>
-
-                            {/* Thanksgiving */}
-                            {officeContent.thanksgiving.length > 0 && (
-                                <div className="mb-8">
-                                    <div className="section-header">
-                                        🙏 Thanksgiving
-                                    </div>
-                                    {officeContent.thanksgiving.map(renderPrayer)}
-                                </div>
-                            )}
-
-                            <div className="section-divider"></div>
-
-                            {/* Forgiveness */}
-                            {officeContent.forgiveness.length > 0 && (
-                                <div className="mb-8">
-                                    <div className="section-header">
-                                        ✝️ Forgiveness
-                                    </div>
-                                    {officeContent.forgiveness.map(renderPrayer)}
-                                </div>
-                            )}
-
-                            <div className="section-divider"></div>
-
-                            {/* Meditation */}
-                            {officeContent.meditation.length > 0 && (
-                                <div className="mb-8">
-                                    <div className="section-header">
-                                        📖 Meditation
-                                    </div>
-                                    {officeContent.meditation.map(renderPrayer)}
-                                </div>
-                            )}
-
-                            <div className="section-divider"></div>
-
-                            {/* Spurgeon Devotional */}
-                            <div className="mb-8">
-                                <div className="section-header">
-                                    📚 Spurgeon's Morning & Evening
-                                </div>
-                                <div className="fade-in">
-                                    <h4 className="serif text-xl font-semibold text-blue-900 mb-3 italic">
-                                        {officeContent.devotional.title}
-                                    </h4>
-                                    <div className="prayer-content text-gray-800">
-                                        <p className="whitespace-pre-line leading-relaxed">
-                                            {officeContent.devotional.text}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="section-divider"></div>
-
-                            {/* Daily Focus */}
-                            {officeContent.dailyFocus.length > 0 && (
-                                <div className="mb-8">
-                                    <div className="section-header">
-                                        🎯 {officeContent.dayName} Focus
-                                    </div>
-                                    {officeContent.dailyFocus.map(renderPrayer)}
-                                </div>
-                            )}
-
-                            <div className="section-divider"></div>
-
-                            {/* Benediction */}
-                            {officeContent.benediction.length > 0 && (
-                                <div>
-                                    <div className="section-header">
-                                        🕊️ Benediction
-                                    </div>
-                                    {officeContent.benediction.map(renderPrayer)}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Footer */}
-                    <div className="text-center mt-8 text-blue-800 text-xs md:text-sm space-y-1">
-                        <p className="font-medium">A daily rhythm of prayer and Scripture</p>
-                    </div>
-                </div>
-            </div>
-        );
+    // start when we hit the requested section header
+    if (line === sectionName) {
+      inSection = true;
+      continue;
     }
 
-    ReactDOM.render(<DailyOffice />, document.getElementById('root'));
-</script>
+    // if we're inside the target section but encounter another section header, stop
+    if (inSection && sectionHeaders.includes(line) && line !== sectionName) {
+      break;
+    }
+
+    // collect MORNING / EVENING entries for the requested period (period is 'morning' or 'evening')
+    if (inSection && line.startsWith(period.toUpperCase())) {
+      // extract the short title after "MORNING - " or "EVENING - "
+      const prayerLine = line.substring(period.length + 3);
+      let verseLines = [];
+
+      for (let j = i + 1; j < lines.length; j++) {
+        const nextLine = lines[j].trim();
+
+        // stop if we reach another MORNING/EVENING block or a blank double-line
+        if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || 
+            (nextLine === '' && lines[j+1]?.trim() === '')) {
+          break;
+        }
+        if (nextLine) {
+          verseLines.push(nextLine);
+        }
+      }
+
+      result.push({
+        title: prayerLine,
+        text: verseLines.join(' ')
+      });
+    }
+
+    // fallback safety: if we're in section and we find a line that suggests end-of-section (focus or Daily Collects), break
+    if (inSection && line && !line.startsWith(period.toUpperCase()) &&
+        !line.startsWith('MORNING') && !line.startsWith('EVENING') &&
+        (line.includes('Focus:') || line === 'Daily Collects')) {
+      break;
+    }
+  }
+
+  return result;
+};
+
+            const parseDailyFocus = (content, dayName, period) => {
+                const sectionName = `${dayName} Focus:`;
+                const lines = content.split('\n');
+                let inSection = false;
+                let result = [];
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    
+                    if (line.startsWith(sectionName)) {
+                        inSection = true;
+                        continue;
+                    }
+                    
+                    if (inSection && line.startsWith(period.toUpperCase())) {
+                        const prayerLine = line.substring(period.length + 3);
+                        let verseLines = [];
+                        
+                        for (let j = i + 1; j < lines.length; j++) {
+                            const nextLine = lines[j].trim();
+                            if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || 
+                                (nextLine === '' && lines[j+1]?.trim().includes('Focus:'))) {
+                                break;
+                            }
+                            if (nextLine) {
+                                verseLines.push(nextLine);
+                            }
+                        }
+                        
+                        result.push({
+                            title: prayerLine,
+                            text: verseLines.join(' ')
+                        });
+                    }
+                    
+                    if (inSection && line.includes('Focus:') && !line.startsWith(sectionName)) {
+                        break;
+                    }
+                }
+                
+                return result;
+            };
+
+            const parseDevotional = (content, monthName, day, period) => {
+                const searchPattern = `${monthName} ${day} ${period}`;
+                const lines = content.split('\n');
+                let foundIndex = -1;
+                
+                for (let i = 0; i < lines.length; i++) {
+                    if (lines[i].trim() === searchPattern) {
+                        foundIndex = i;
+                        break;
+                    }
+                }
+                
+                if (foundIndex === -1) return null;
+                
+                let devotionalLines = [];
+                const datePattern = /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d+\s+(AM|PM)$/;
+                
+                for (let i = foundIndex + 1; i < lines.length; i++) {
+                    if (datePattern.test(lines[i].trim())) break;
+                    devotionalLines.push(lines[i]);
+                }
+                
+                const text = devotionalLines.join('\n').trim();
+                const textLines = text.split('\n').filter(line => line.trim());
+                return {
+                    title: textLines[0] || '',
+                    text: textLines.slice(1).join('\n\n')
+                };
+            };
+
+            useEffect(() => {
+                if (!selectedDate || !devotionalFile || !officeFile) return;
+
+                setLoading(true);
+                setError('');
+                
+                setTimeout(() => {
+                    try {
+                        const date = new Date(selectedDate);
+                        let month = date.getMonth();
+                        let day = date.getDate();
+                        
+                        if (month === 1 && day === 29) {
+                            day = 28;
+                        }
+                        
+                        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                                           'July', 'August', 'September', 'October', 'November', 'December'];
+                        const monthName = monthNames[month];
+                        const period = timeOfDay === 'morning' ? 'AM' : 'PM';
+                        const dayName = getDayOfWeek(selectedDate);
+                        
+                        const thanksgiving = parseOfficeSection(officeFile, 'Thanksgiving', timeOfDay);
+                        const forgiveness = parseOfficeSection(officeFile, 'Forgiveness', timeOfDay);
+                        const meditation = parseOfficeSection(officeFile, 'Meditation', timeOfDay);
+                        const benediction = parseOfficeSection(officeFile, 'Benediction', timeOfDay);
+                        const dailyFocus = parseDailyFocus(officeFile, dayName, timeOfDay);
+                        const devotional = parseDevotional(devotionalFile, monthName, day, period);
+                        
+                        if (!devotional) {
+                            throw new Error('Could not load devotional for this date');
+                        }
+                        
+                        setOfficeContent({
+                            thanksgiving,
+                            forgiveness,
+                            meditation,
+                            devotional,
+                            dailyFocus,
+                            dayName,
+                            benediction
+                        });
+                        
+                    } catch (err) {
+                        setError('Unable to load Daily Office content.');
+                        console.error(err);
+                    } finally {
+                        setLoading(false);
+                    }
+                }, 400);
+            }, [selectedDate, timeOfDay, devotionalFile, officeFile]);
+
+            const renderPrayer = (prayer) => (
+                <div key={prayer.title} className="mb-6 fade-in">
+                    <h4 className="serif text-lg font-semibold text-blue-900 mb-3">{prayer.title}</h4>
+                    <div className="prayer-content text-gray-800">
+                        <p className="whitespace-pre-line leading-relaxed">{prayer.text}</p>
+                    </div>
+                </div>
+            );
+
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                               'July', 'August', 'September', 'October', 'November', 'December'];
+            const currentDate = selectedDate ? new Date(selectedDate) : null;
+            const formattedDate = currentDate ? 
+                `${monthNames[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}` : '';
+
+            return (
+                <div className="min-h-screen p-4 md:p-8 py-6 md:py-12">
+                    <div className="max-w-4xl mx-auto">
+                        {/* Header */}
+                        <div className="text-center mb-8">
+                            <h1 className="serif text-5xl md:text-6xl font-bold text-blue-950 mb-3 tracking-tight">
+                                Daily Office
+                            </h1>
+                            <div className="h-1 w-24 mx-auto bg-gradient-to-r from-transparent via-blue-700 to-transparent mb-3"></div>
+                            <p className="text-blue-800 text-sm md:text-base tracking-wide uppercase font-medium">
+                                Prayer & Devotion
+                            </p>
+                        </div>
+
+                        {/* Controls */}
+                        <div className="glass-effect rounded-2xl shadow-custom p-6 mb-6">
+                            <div className="grid md:grid-cols-2 gap-5">
+                                <div className="control-card">
+                                    <label className="block text-sm font-semibold text-blue-900 mb-3 tracking-wide">
+                                        📅 DATE
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={selectedDate}
+                                        onChange={(e) => setSelectedDate(e.target.value)}
+                                        className="w-full px-4 py-3.5 text-base bg-white border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-blue-900 font-medium"
+                                    />
+                                </div>
+
+                                <div className="control-card">
+                                    <label className="block text-sm font-semibold text-blue-900 mb-3 tracking-wide">
+                                        ⏰ TIME
+                                    </label>
+                                    <select
+                                        value={timeOfDay}
+                                        onChange={(e) => setTimeOfDay(e.target.value)}
+                                        className="w-full px-4 py-3.5 text-base bg-white border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-blue-900 font-medium cursor-pointer"
+                                    >
+                                        <option value="morning">Morning Office</option>
+                                        <option value="evening">Evening Office</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        {loading && (
+                            <div className="glass-effect rounded-2xl shadow-custom p-12 text-center">
+                                <div className="loading-spinner rounded-full h-14 w-14 border-4 border-t-4 animate-spin mx-auto mb-4"></div>
+                                <p className="text-blue-700 font-medium">Preparing your Daily Office...</p>
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className="glass-effect rounded-2xl shadow-custom p-6">
+                                <div className="bg-red-50 border-2 border-red-300 text-red-800 px-5 py-4 rounded-xl text-sm md:text-base font-medium">
+                                    {error}
+                                </div>
+                            </div>
+                        )}
+
+                        {!loading && !error && officeContent && (
+                            <div className="glass-effect rounded-2xl shadow-custom p-6 md:p-10 fade-in">
+                                <div className="text-center mb-8">
+                                    <h2 className="serif text-2xl md:text-3xl font-bold text-blue-950 mb-2">
+                                        {timeOfDay === 'morning' ? 'Morning' : 'Evening'} Office
+                                    </h2>
+                                    <p className="text-blue-700 font-medium">{formattedDate}</p>
+                                </div>
+
+                                {/* Thanksgiving */}
+                                {officeContent.thanksgiving.length > 0 && (
+                                    <div className="mb-8">
+                                        <div className="section-header">
+                                            🙏 Thanksgiving
+                                        </div>
+                                        {officeContent.thanksgiving.map(renderPrayer)}
+                                    </div>
+                                )}
+
+                                <div className="section-divider"></div>
+
+                                {/* Forgiveness */}
+                                {officeContent.forgiveness.length > 0 && (
+                                    <div className="mb-8">
+                                        <div className="section-header">
+                                            ✝️ Forgiveness
+                                        </div>
+                                        {officeContent.forgiveness.map(renderPrayer)}
+                                    </div>
+                                )}
+
+                                <div className="section-divider"></div>
+
+                                {/* Meditation */}
+                                {officeContent.meditation.length > 0 && (
+                                    <div className="mb-8">
+                                        <div className="section-header">
+                                            📖 Meditation
+                                        </div>
+                                        {officeContent.meditation.map(renderPrayer)}
+                                    </div>
+                                )}
+
+                                <div className="section-divider"></div>
+
+                                {/* Spurgeon Devotional */}
+                                <div className="mb-8">
+                                    <div className="section-header">
+                                        📚 Spurgeon's Morning & Evening
+                                    </div>
+                                    <div className="fade-in">
+                                        <h4 className="serif text-xl font-semibold text-blue-900 mb-3 italic">
+                                            {officeContent.devotional.title}
+                                        </h4>
+                                        <div className="prayer-content text-gray-800">
+                                            <p className="whitespace-pre-line leading-relaxed">
+                                                {officeContent.devotional.text}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="section-divider"></div>
+
+                                {/* Daily Focus */}
+                                {officeContent.dailyFocus.length > 0 && (
+                                    <div className="mb-8">
+                                        <div className="section-header">
+                                            🎯 {officeContent.dayName} Focus
+                                        </div>
+                                        {officeContent.dailyFocus.map(renderPrayer)}
+                                    </div>
+                                )}
+
+                                <div className="section-divider"></div>
+
+                                {/* Benediction */}
+                                {officeContent.benediction.length > 0 && (
+                                    <div>
+                                        <div className="section-header">
+                                            🕊️ Benediction
+                                        </div>
+                                        {officeContent.benediction.map(renderPrayer)}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Footer */}
+                        <div className="text-center mt-8 text-blue-800 text-xs md:text-sm space-y-1">
+                            <p className="font-medium">A daily rhythm of prayer and Scripture</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<DailyOffice />, document.getElementById('root'));
+    </script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>
