@@ -46,11 +46,10 @@
         const getDayOfWeek = (dateStr) => {
             const date = new Date(dateStr);
             const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            return days[date.getDay()];
+            return days[date.getUTCDay()];
         };
 
         const parseOfficeSection = (content, sectionName, period) => {
-            // Define all possible section headings to recognise the end of a section
             const sectionHeadings = ['Thanksgiving', 'Forgiveness', 'Meditation', 'Benediction'];
             const lines = content.split('\n');
             let inSection = false;
@@ -59,7 +58,6 @@
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 
-                // If we're already in our target section and hit another heading, stop.
                 if (inSection && sectionHeadings.includes(line) && line !== sectionName) {
                     break;
                 }
@@ -73,15 +71,12 @@
                     const prayerLine = line.substring(period.length + 3);
                     let verseLines = [];
                     
-                    // Look ahead to gather the prayer text
                     for (let j = i + 1; j < lines.length; j++) {
                         const nextLine = lines[j].trim();
-                        // Stop if we hit a blank line followed by another blank line, or the start of a new prayer
                         if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || 
                             (nextLine === '' && lines[j+1]?.trim() === '')) {
                             break;
                         }
-                        // Also stop if we hit the next main heading
                         if (sectionHeadings.includes(nextLine)) {
                             break;
                         }
@@ -90,9 +85,11 @@
                         }
                     }
                     
+                    const reference = verseLines.pop() || '';
                     result.push({
                         title: prayerLine,
-                        text: verseLines.join(' ').replace(/\(\s*cf\..*?\)/g, '').trim() // Strips verse numbers like (Psalm 51) etc.
+                        text: verseLines.join(' '),
+                        reference: reference
                     });
                 }
             }
@@ -120,6 +117,7 @@
                     
                     for (let j = i + 1; j < lines.length; j++) {
                         const nextLine = lines[j].trim();
+                        // CORRECTED LINE to prevent crash at the end of the file.
                         if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || 
                             (nextLine === '' && lines[j+1]?.trim().includes('Focus:'))) {
                             break;
@@ -129,7 +127,7 @@
                         }
                     }
                     
-                    const reference = verseLines.pop();
+                    const reference = verseLines.pop() || '';
                     result.push({
                         title: prayerLine,
                         text: verseLines.join(' '),
@@ -184,7 +182,6 @@
             setTimeout(() => {
                 try {
                     const date = new Date(selectedDate);
-                    // Adjust for leap years in the devotional file, which lacks Feb 29
                     const isLeapYear = (year) => (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
                     
                     let month = date.getUTCMonth();
@@ -353,21 +350,23 @@
                             <div className="section-divider"></div>
 
                             {/* Spurgeon Devotional */}
-                            <div className="mb-8">
-                                <div className="section-header">
-                                    📚 Spurgeon's Morning & Evening
-                                </div>
-                                <div className="fade-in">
-                                    <h4 className="serif text-xl font-semibold text-blue-900 mb-3 italic">
-                                        "{officeContent.devotional.title}"
-                                    </h4>
-                                    <div className="prayer-content text-gray-800">
-                                        <p className="whitespace-pre-line leading-relaxed">
-                                            {officeContent.devotional.text}
-                                        </p>
+                            {officeContent.devotional && (
+                                <div className="mb-8">
+                                    <div className="section-header">
+                                        📚 Spurgeon's Morning & Evening
+                                    </div>
+                                    <div className="fade-in">
+                                        <h4 className="serif text-xl font-semibold text-blue-900 mb-3 italic">
+                                            {officeContent.devotional.title}
+                                        </h4>
+                                        <div className="prayer-content text-gray-800">
+                                            <p className="whitespace-pre-line leading-relaxed">
+                                                {officeContent.devotional.text}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
                             <div className="section-divider"></div>
 
