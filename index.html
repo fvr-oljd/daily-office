@@ -41,7 +41,7 @@
         .prose h2 {
             font-family: 'Noto Serif Display', Georgia, serif;
             font-weight: 500;
-            font-size: 1.5em;
+            font-size: 1.4em; /* Slightly smaller section titles */
             text-transform: uppercase;
             letter-spacing: 0.1em;
             text-align: center;
@@ -52,14 +52,14 @@
         .prose h4 {
             font-family: 'Noto Serif Display', Georgia, serif;
             font-weight: 600;
-            font-size: 1.2em;
+            font-size: 1.1em; /* Slightly smaller prayer titles */
             margin-bottom: 0.5em;
             color: #404040;
         }
         .prose p {
             font-family: 'Noto Serif Display', Georgia, serif;
-            font-size: 1.1rem;
-            line-height: 1.8;
+            font-size: 1rem; /* Reduced base font size */
+            line-height: 1.75;
             color: #262626;
         }
         .prose em {
@@ -133,32 +133,37 @@
             };
 
             const parseCollectSection = (content, sectionName, period) => {
+                const collectTitles = ['Thanksgiving', 'Forgiveness', 'Meditation', 'Benediction'];
                 const lines = content.split('\n');
                 let inSection = false;
                 let results = [];
+
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i].trim();
-                    if (line === sectionName) {
-                        inSection = true;
+
+                    if (!inSection) {
+                        if (line === sectionName) {
+                            inSection = true;
+                        }
                         continue;
                     }
-                    if (inSection) {
-                        if (line.startsWith(period.toUpperCase())) {
-                            const prayerTitle = line.substring(period.length + 3);
-                            let verseLines = [];
-                            for (let j = i + 1; j < lines.length; j++) {
-                                const nextLine = lines[j].trim();
-                                if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || nextLine === '') {
-                                    break;
-                                }
-                                verseLines.push(nextLine);
+
+                    const isAnotherSectionTitle = collectTitles.includes(line) && line !== sectionName;
+                    if (isAnotherSectionTitle) {
+                        break; 
+                    }
+                    
+                    if (line.startsWith(period.toUpperCase())) {
+                        const prayerTitle = line.substring(period.length + 3);
+                        let verseLines = [];
+                        for (let j = i + 1; j < lines.length; j++) {
+                            const nextLine = lines[j].trim();
+                            if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || nextLine === '') {
+                                break;
                             }
-                            results.push({ title: prayerTitle, text: verseLines.join(' ') });
+                            verseLines.push(nextLine);
                         }
-                        if (line.length > 0 && line === line.toUpperCase() && !line.startsWith('MORNING') && !line.startsWith('EVENING')) {
-                            // This marks the start of the next collect (e.g., 'Forgiveness'), so we stop.
-                            break;
-                        }
+                        results.push({ title: prayerTitle, text: verseLines.join(' ') });
                     }
                 }
                 return results;
@@ -178,12 +183,12 @@
                         let verseLines = [];
                         for (let j = i + 1; j < lines.length; j++) {
                             const nextLine = lines[j].trim();
-                            if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || (nextLine === '' && lines[j+1]?.trim().includes('Focus:'))) { break; }
+                            if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || (nextLine === '' && (lines[j+1]?.trim().includes('Focus:') || lines[j+1]?.trim() === 'Daily Collects' ))) { break; }
                             if (nextLine) verseLines.push(nextLine);
                         }
                         result.push({ title: prayerLine, text: verseLines.join(' ') });
                     }
-                    if (inSection && line.includes('Focus:') && !line.startsWith(sectionName)) { break; }
+                    if (inSection && (line.includes('Focus:') || line === 'Daily Collects') && !line.startsWith(sectionName)) { break; }
                 }
                 return result;
             };
@@ -258,20 +263,12 @@
                     <div className="mb-12">
                         <h2>{title}</h2>
                         {prayers.map((p, index) => {
-                            const [mainText, reference] = p.text.split('(');
+                            const parts = p.text.split(/(\)/g);
                             return (
                                 <div key={index} className="mb-6">
                                     <h4>{p.title}</h4>
-                                    <p className="whitespace-pre-line">{mainText.trim()}</p>
-                                    {reference && <p className="verse-reference">({reference}</p>}
-                                </div>
-                            );
-                        })}
-                    </div>
-                );
-            };
-
-            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                                    {parts.map((part, i) => {
+                                        if (part.startsWith(';
             const currentDate = selectedDate ? new Date(selectedDate) : null;
             const formattedDate = currentDate ? 
                 `${getDayOfWeek(selectedDate)}, ${monthNames[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}` : '';
@@ -354,7 +351,7 @@
                                                     {officeContent.devotional.title}
                                                 </h4>
                                                 <p className="whitespace-pre-line">
-                                                    {officeContent.devotional.text}
+                                                    {officeContent.devotional.text.replace(/\/g, '')}
                                                 </p>
                                             </div>
                                         </div>
