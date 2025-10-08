@@ -9,86 +9,53 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1e3a8a">
+    <meta name="theme-color" content="#f5f5f4">
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        html {
+            scroll-behavior: smooth;
+        }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f5f5f4; /* stone-100 */
         }
         .serif {
             font-family: 'Crimson Pro', Georgia, serif;
         }
-        .prayer-content {
-            font-family: 'Crimson Pro', Georgia, serif;
-            font-size: 1.0625rem;
-            line-height: 1.75;
-            letter-spacing: 0.01em;
-        }
-        .gradient-bg {
-            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 50%, #93c5fd 100%);
-        }
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-        .shadow-custom {
-            box-shadow: 0 10px 40px -10px rgba(30, 58, 138, 0.25);
-        }
-        .section-divider {
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #3b82f6, transparent);
-            margin: 2rem 0;
-        }
-        .section-header {
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: 0.75rem;
-            font-weight: 600;
-            text-align: center;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.3);
-        }
         .fade-in {
-            animation: fadeIn 0.6s ease-in;
+            animation: fadeIn 0.8s ease-in-out;
         }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
         .loading-spinner {
-            border-color: rgba(37, 99, 235, 0.1);
-            border-top-color: #2563eb;
+            border-color: rgba(67, 56, 202, 0.1); /* indigo-900/10 */
+            border-top-color: #312e81; /* indigo-900 */
         }
-        input[type="date"] {
-            appearance: none;
-            -webkit-appearance: none;
-        }
-        .control-card {
-            transition: all 0.2s ease;
-        }
-        .control-card:focus-within {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px -5px rgba(30, 58, 138, 0.25);
-        }
-        .verse-reference {
-            color: #1e40af;
-            font-style: italic;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
+        /* Custom date input icon */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" viewBox="0 0 24 24"><path fill="%234338ca" d="M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z"/></svg>');
+            cursor: pointer;
         }
     </style>
 </head>
-<body class="gradient-bg min-h-screen">
+<body class="bg-stone-100 text-slate-800">
     <div id="root"></div>
     
     <script type="text/babel">
-        const { useState, useEffect } = React;
-        
+        const { useState, useEffect, useRef } = React;
+
+        // Helper for icons
+        const Icon = ({ path, className = "h-6 w-6" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+                <path fillRule="evenodd" d={path} clipRule="evenodd" />
+            </svg>
+        );
+
         function DailyOffice() {
             const [selectedDate, setSelectedDate] = useState('');
             const [timeOfDay, setTimeOfDay] = useState('morning');
@@ -97,6 +64,7 @@
             const [error, setError] = useState('');
             const [devotionalFile, setDevotionalFile] = useState(null);
             const [officeFile, setOfficeFile] = useState(null);
+            const contentRef = useRef(null);
 
             useEffect(() => {
                 const now = new Date();
@@ -117,7 +85,7 @@
                     ]);
                     
                     if (!devotionalRes.ok || !officeRes.ok) {
-                        throw new Error('Failed to load files');
+                        throw new Error('Failed to load content files');
                     }
                     
                     const devotionalText = await devotionalRes.text();
@@ -137,63 +105,28 @@
                 return days[date.getDay()];
             };
 
-            // REPLACE your current parseOfficeSection with this function
-const parseOfficeSection = (content, sectionName, period) => {
-  const lines = content.split('\n');
-  let inSection = false;
-  let result = [];
-  // all top-level Daily Collects headings we expect in office.txt
-  const sectionHeaders = ['Thanksgiving', 'Forgiveness', 'Meditation', 'Benediction', 'Daily Collects'];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-
-    // start when we hit the requested section header
-    if (line === sectionName) {
-      inSection = true;
-      continue;
-    }
-
-    // if we're inside the target section but encounter another section header, stop
-    if (inSection && sectionHeaders.includes(line) && line !== sectionName) {
-      break;
-    }
-
-    // collect MORNING / EVENING entries for the requested period (period is 'morning' or 'evening')
-    if (inSection && line.startsWith(period.toUpperCase())) {
-      // extract the short title after "MORNING - " or "EVENING - "
-      const prayerLine = line.substring(period.length + 3);
-      let verseLines = [];
-
-      for (let j = i + 1; j < lines.length; j++) {
-        const nextLine = lines[j].trim();
-
-        // stop if we reach another MORNING/EVENING block or a blank double-line
-        if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || 
-            (nextLine === '' && lines[j+1]?.trim() === '')) {
-          break;
-        }
-        if (nextLine) {
-          verseLines.push(nextLine);
-        }
-      }
-
-      result.push({
-        title: prayerLine,
-        text: verseLines.join(' ')
-      });
-    }
-
-    // fallback safety: if we're in section and we find a line that suggests end-of-section (focus or Daily Collects), break
-    if (inSection && line && !line.startsWith(period.toUpperCase()) &&
-        !line.startsWith('MORNING') && !line.startsWith('EVENING') &&
-        (line.includes('Focus:') || line === 'Daily Collects')) {
-      break;
-    }
-  }
-
-  return result;
-};
+            const parseOfficeSection = (content, sectionName, period) => {
+                const lines = content.split('\n');
+                let inSection = false;
+                let result = [];
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (line === sectionName) { inSection = true; continue; }
+                    if (inSection && line.startsWith(period.toUpperCase())) {
+                        const prayerLine = line.substring(period.length + 3);
+                        let verseLines = [];
+                        for (let j = i + 1; j < lines.length; j++) {
+                            const nextLine = lines[j].trim();
+                            if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || (nextLine === '' && lines[j+1]?.trim() === '')) { break; }
+                            if (nextLine) verseLines.push(nextLine);
+                        }
+                        result.push({ title: prayerLine, text: verseLines.join(' ') });
+                    }
+                    if (inSection && line && !line.startsWith(period.toUpperCase()) && !line.startsWith('MORNING') && !line.startsWith('EVENING') && (line.includes('Focus:') || line === 'Daily Collects')) { break; }
+                }
+                return result;
+            };
 
             const parseDailyFocus = (content, dayName, period) => {
                 const sectionName = `${dayName} Focus:`;
@@ -203,53 +136,28 @@ const parseOfficeSection = (content, sectionName, period) => {
                 
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i].trim();
-                    
-                    if (line.startsWith(sectionName)) {
-                        inSection = true;
-                        continue;
-                    }
-                    
+                    if (line.startsWith(sectionName)) { inSection = true; continue; }
                     if (inSection && line.startsWith(period.toUpperCase())) {
                         const prayerLine = line.substring(period.length + 3);
                         let verseLines = [];
-                        
                         for (let j = i + 1; j < lines.length; j++) {
                             const nextLine = lines[j].trim();
-                            if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || 
-                                (nextLine === '' && lines[j+1]?.trim().includes('Focus:'))) {
-                                break;
-                            }
-                            if (nextLine) {
-                                verseLines.push(nextLine);
-                            }
+                            if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || (nextLine === '' && lines[j+1]?.trim().includes('Focus:'))) { break; }
+                            if (nextLine) verseLines.push(nextLine);
                         }
-                        
-                        result.push({
-                            title: prayerLine,
-                            text: verseLines.join(' ')
-                        });
+                        result.push({ title: prayerLine, text: verseLines.join(' ') });
                     }
-                    
-                    if (inSection && line.includes('Focus:') && !line.startsWith(sectionName)) {
-                        break;
-                    }
+                    if (inSection && line.includes('Focus:') && !line.startsWith(sectionName)) { break; }
                 }
-                
                 return result;
             };
-
+            
             const parseDevotional = (content, monthName, day, period) => {
                 const searchPattern = `${monthName} ${day} ${period}`;
                 const lines = content.split('\n');
                 let foundIndex = -1;
                 
-                for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].trim() === searchPattern) {
-                        foundIndex = i;
-                        break;
-                    }
-                }
-                
+                for (let i = 0; i < lines.length; i++) { if (lines[i].trim() === searchPattern) { foundIndex = i; break; } }
                 if (foundIndex === -1) return null;
                 
                 let devotionalLines = [];
@@ -262,10 +170,7 @@ const parseOfficeSection = (content, sectionName, period) => {
                 
                 const text = devotionalLines.join('\n').trim();
                 const textLines = text.split('\n').filter(line => line.trim());
-                return {
-                    title: textLines[0] || '',
-                    text: textLines.slice(1).join('\n\n')
-                };
+                return { title: textLines[0] || '', text: textLines.slice(1).join('\n\n') };
             };
 
             useEffect(() => {
@@ -273,221 +178,175 @@ const parseOfficeSection = (content, sectionName, period) => {
 
                 setLoading(true);
                 setError('');
+                setOfficeContent(null);
                 
+                // Scroll to top of content area on new load
+                if(contentRef.current) {
+                    contentRef.current.scrollIntoView();
+                }
+
                 setTimeout(() => {
                     try {
                         const date = new Date(selectedDate);
                         let month = date.getMonth();
                         let day = date.getDate();
                         
-                        if (month === 1 && day === 29) {
-                            day = 28;
-                        }
+                        if (month === 1 && day === 29) { day = 28; } // Handle leap year
                         
-                        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                                           'July', 'August', 'September', 'October', 'November', 'December'];
-                        const monthName = monthNames[month];
-                        const period = timeOfDay === 'morning' ? 'AM' : 'PM';
+                        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
                         const dayName = getDayOfWeek(selectedDate);
                         
-                        const thanksgiving = parseOfficeSection(officeFile, 'Thanksgiving', timeOfDay);
-                        const forgiveness = parseOfficeSection(officeFile, 'Forgiveness', timeOfDay);
-                        const meditation = parseOfficeSection(officeFile, 'Meditation', timeOfDay);
-                        const benediction = parseOfficeSection(officeFile, 'Benediction', timeOfDay);
-                        const dailyFocus = parseDailyFocus(officeFile, dayName, timeOfDay);
-                        const devotional = parseDevotional(devotionalFile, monthName, day, period);
+                        const newOfficeContent = {
+                            thanksgiving: parseOfficeSection(officeFile, 'Thanksgiving', timeOfDay),
+                            forgiveness: parseOfficeSection(officeFile, 'Forgiveness', timeOfDay),
+                            meditation: parseOfficeSection(officeFile, 'Meditation', timeOfDay),
+                            benediction: parseOfficeSection(officeFile, 'Benediction', timeOfDay),
+                            dailyFocus: parseDailyFocus(officeFile, dayName, timeOfDay),
+                            devotional: parseDevotional(devotionalFile, monthNames[month], day, timeOfDay === 'morning' ? 'AM' : 'PM'),
+                            dayName: dayName,
+                        };
                         
-                        if (!devotional) {
+                        if (!newOfficeContent.devotional) {
                             throw new Error('Could not load devotional for this date');
                         }
                         
-                        setOfficeContent({
-                            thanksgiving,
-                            forgiveness,
-                            meditation,
-                            devotional,
-                            dailyFocus,
-                            dayName,
-                            benediction
-                        });
+                        setOfficeContent(newOfficeContent);
                         
                     } catch (err) {
-                        setError('Unable to load Daily Office content.');
+                        setError('Unable to load Daily Office content for the selected date.');
                         console.error(err);
                     } finally {
                         setLoading(false);
                     }
-                }, 400);
+                }, 300);
             }, [selectedDate, timeOfDay, devotionalFile, officeFile]);
-
-            const renderPrayer = (prayer) => (
-                <div key={prayer.title} className="mb-6 fade-in">
-                    <h4 className="serif text-lg font-semibold text-blue-900 mb-3">{prayer.title}</h4>
-                    <div className="prayer-content text-gray-800">
-                        <p className="whitespace-pre-line leading-relaxed">{prayer.text}</p>
+            
+            const renderPrayerSection = (title, iconPath, prayers) => {
+                if (!prayers || prayers.length === 0) return null;
+                return (
+                    <div className="mb-10">
+                        <h2 className="flex items-center justify-center text-xl font-semibold serif text-indigo-900 mb-6">
+                           <Icon path={iconPath} className="h-6 w-6 mr-3" />
+                           {title}
+                        </h2>
+                        {prayers.map(p => (
+                            <div key={p.title} className="mb-6">
+                                <h4 className="serif text-lg font-semibold text-slate-700 mb-2">{p.title}</h4>
+                                <p className="whitespace-pre-line leading-relaxed">{p.text}</p>
+                            </div>
+                        ))}
                     </div>
-                </div>
-            );
+                );
+            };
 
-            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                               'July', 'August', 'September', 'October', 'November', 'December'];
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
             const currentDate = selectedDate ? new Date(selectedDate) : null;
             const formattedDate = currentDate ? 
-                `${monthNames[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}` : '';
+                `${getDayOfWeek(selectedDate)}, ${monthNames[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}` : '';
 
             return (
-                <div className="min-h-screen p-4 md:p-8 py-6 md:py-12">
-                    <div className="max-w-4xl mx-auto">
+                <div className="min-h-screen">
+                    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                         {/* Header */}
-                        <div className="text-center mb-8">
-                            <h1 className="serif text-5xl md:text-6xl font-bold text-blue-950 mb-3 tracking-tight">
+                        <header className="text-center pt-8 pb-12">
+                            <h1 className="serif text-4xl md:text-5xl font-bold text-slate-900 mb-2 tracking-tight">
                                 Daily Office
                             </h1>
-                            <div className="h-1 w-24 mx-auto bg-gradient-to-r from-transparent via-blue-700 to-transparent mb-3"></div>
-                            <p className="text-blue-800 text-sm md:text-base tracking-wide uppercase font-medium">
-                                Prayer & Devotion
+                            <p className="text-slate-500 text-base">
+                                A rhythm of prayer & devotion
                             </p>
-                        </div>
+                        </header>
 
                         {/* Controls */}
-                        <div className="glass-effect rounded-2xl shadow-custom p-6 mb-6">
-                            <div className="grid md:grid-cols-2 gap-5">
-                                <div className="control-card">
-                                    <label className="block text-sm font-semibold text-blue-900 mb-3 tracking-wide">
-                                        📅 DATE
-                                    </label>
+                        <div className="sticky top-0 z-10 py-4 bg-stone-100/80 backdrop-blur-lg border-b border-stone-200/80 mb-8">
+                           <div className="grid grid-cols-2 gap-4 items-center">
+                               <div>
                                     <input
                                         type="date"
                                         value={selectedDate}
                                         onChange={(e) => setSelectedDate(e.target.value)}
-                                        className="w-full px-4 py-3.5 text-base bg-white border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-blue-900 font-medium"
+                                        className="w-full px-4 py-2.5 text-base bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-800 font-medium shadow-sm"
                                     />
                                 </div>
-
-                                <div className="control-card">
-                                    <label className="block text-sm font-semibold text-blue-900 mb-3 tracking-wide">
-                                        ⏰ TIME
-                                    </label>
-                                    <select
-                                        value={timeOfDay}
-                                        onChange={(e) => setTimeOfDay(e.target.value)}
-                                        className="w-full px-4 py-3.5 text-base bg-white border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-blue-900 font-medium cursor-pointer"
+                               <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        onClick={() => setTimeOfDay('morning')}
+                                        className={`px-4 py-2.5 text-sm font-semibold rounded-lg transition-all shadow-sm ${timeOfDay === 'morning' ? 'bg-indigo-700 text-white' : 'bg-white text-slate-700 border border-stone-300 hover:bg-stone-50'}`}
                                     >
-                                        <option value="morning">Morning Office</option>
-                                        <option value="evening">Evening Office</option>
-                                    </select>
-                                </div>
-                            </div>
+                                        Morning
+                                    </button>
+                                    <button
+                                        onClick={() => setTimeOfDay('evening')}
+                                        className={`px-4 py-2.5 text-sm font-semibold rounded-lg transition-all shadow-sm ${timeOfDay === 'evening' ? 'bg-indigo-700 text-white' : 'bg-white text-slate-700 border border-stone-300 hover:bg-stone-50'}`}
+                                    >
+                                        Evening
+                                    </button>
+                               </div>
+                           </div>
                         </div>
-
-                        {/* Content */}
-                        {loading && (
-                            <div className="glass-effect rounded-2xl shadow-custom p-12 text-center">
-                                <div className="loading-spinner rounded-full h-14 w-14 border-4 border-t-4 animate-spin mx-auto mb-4"></div>
-                                <p className="text-blue-700 font-medium">Preparing your Daily Office...</p>
-                            </div>
-                        )}
-
-                        {error && (
-                            <div className="glass-effect rounded-2xl shadow-custom p-6">
-                                <div className="bg-red-50 border-2 border-red-300 text-red-800 px-5 py-4 rounded-xl text-sm md:text-base font-medium">
-                                    {error}
+                        
+                        {/* Content Area */}
+                        <main ref={contentRef}>
+                            {loading && (
+                                <div className="bg-white rounded-xl shadow-lg p-12 text-center border border-stone-200">
+                                    <div className="loading-spinner rounded-full h-12 w-12 border-4 border-t-4 animate-spin mx-auto mb-4"></div>
+                                    <p className="text-indigo-800 font-medium">Preparing your Daily Office...</p>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {!loading && !error && officeContent && (
-                            <div className="glass-effect rounded-2xl shadow-custom p-6 md:p-10 fade-in">
-                                <div className="text-center mb-8">
-                                    <h2 className="serif text-2xl md:text-3xl font-bold text-blue-950 mb-2">
-                                        {timeOfDay === 'morning' ? 'Morning' : 'Evening'} Office
-                                    </h2>
-                                    <p className="text-blue-700 font-medium">{formattedDate}</p>
+                            {error && (
+                                <div className="bg-red-50 border-l-4 border-red-400 text-red-700 p-4 rounded-lg">
+                                    <p className="font-bold">Error</p>
+                                    <p>{error}</p>
                                 </div>
+                            )}
 
-                                {/* Thanksgiving */}
-                                {officeContent.thanksgiving.length > 0 && (
-                                    <div className="mb-8">
-                                        <div className="section-header">
-                                            🙏 Thanksgiving
-                                        </div>
-                                        {officeContent.thanksgiving.map(renderPrayer)}
+                            {!loading && !error && officeContent && (
+                                <div className="bg-white rounded-xl shadow-lg p-6 md:p-10 border border-stone-200 fade-in">
+                                    <div className="text-center mb-10 pb-6 border-b border-stone-200">
+                                        <h2 className="serif text-3xl md:text-4xl font-bold text-slate-900 mb-2">
+                                            {timeOfDay === 'morning' ? 'Morning' : 'Evening'} Prayer
+                                        </h2>
+                                        <p className="text-slate-500 font-medium">{formattedDate}</p>
                                     </div>
-                                )}
+                                    
+                                    <div className="prose prose-stone max-w-none prose-h4:text-slate-700 prose-p:text-slate-800 prose-p:leading-relaxed">
+                                        {renderPrayerSection("Thanksgiving", "M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.5c0-.621.504-1.125 1.125-1.125H13.5M15 7.5l-3-3m0 0l-3 3m3-3v11.25", officeContent.thanksgiving)}
+                                        <hr className="my-10" />
+                                        {renderPrayerSection("Forgiveness", "M15.182 13.72a4.5 4.5 0 01-6.364 0l-4.5-4.5a4.5 4.5 0 010-6.364l1.909-1.909a4.5 4.5 0 016.364 0l4.5 4.5a4.5 4.5 0 010 6.364l-1.909 1.909zM18 8.25l-4.5 4.5m0 0l-4.5-4.5m4.5 4.5V19.5", officeContent.forgiveness)}
+                                        <hr className="my-10" />
+                                        {renderPrayerSection("Meditation", "M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25", officeContent.meditation)}
+                                        <hr className="my-10" />
 
-                                <div className="section-divider"></div>
-
-                                {/* Forgiveness */}
-                                {officeContent.forgiveness.length > 0 && (
-                                    <div className="mb-8">
-                                        <div className="section-header">
-                                            ✝️ Forgiveness
+                                        <div className="mb-10">
+                                            <h2 className="flex items-center justify-center text-xl font-semibold serif text-indigo-900 mb-6">
+                                                <Icon path="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h7.5" className="h-6 w-6 mr-3" />
+                                                Spurgeon's Morning & Evening
+                                            </h2>
+                                            <div className="fade-in">
+                                                <h4 className="serif text-xl font-semibold text-slate-800 mb-3 italic">
+                                                    {officeContent.devotional.title}
+                                                </h4>
+                                                <p className="whitespace-pre-line leading-relaxed">
+                                                    {officeContent.devotional.text}
+                                                </p>
+                                            </div>
                                         </div>
-                                        {officeContent.forgiveness.map(renderPrayer)}
-                                    </div>
-                                )}
 
-                                <div className="section-divider"></div>
-
-                                {/* Meditation */}
-                                {officeContent.meditation.length > 0 && (
-                                    <div className="mb-8">
-                                        <div className="section-header">
-                                            📖 Meditation
-                                        </div>
-                                        {officeContent.meditation.map(renderPrayer)}
-                                    </div>
-                                )}
-
-                                <div className="section-divider"></div>
-
-                                {/* Spurgeon Devotional */}
-                                <div className="mb-8">
-                                    <div className="section-header">
-                                        📚 Spurgeon's Morning & Evening
-                                    </div>
-                                    <div className="fade-in">
-                                        <h4 className="serif text-xl font-semibold text-blue-900 mb-3 italic">
-                                            {officeContent.devotional.title}
-                                        </h4>
-                                        <div className="prayer-content text-gray-800">
-                                            <p className="whitespace-pre-line leading-relaxed">
-                                                {officeContent.devotional.text}
-                                            </p>
-                                        </div>
+                                        <hr className="my-10" />
+                                        {renderPrayerSection(`${officeContent.dayName} Focus`, "M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582", officeContent.dailyFocus)}
+                                        <hr className="my-10" />
+                                        {renderPrayerSection("Benediction", "M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5", officeContent.benediction)}
                                     </div>
                                 </div>
+                            )}
 
-                                <div className="section-divider"></div>
-
-                                {/* Daily Focus */}
-                                {officeContent.dailyFocus.length > 0 && (
-                                    <div className="mb-8">
-                                        <div className="section-header">
-                                            🎯 {officeContent.dayName} Focus
-                                        </div>
-                                        {officeContent.dailyFocus.map(renderPrayer)}
-                                    </div>
-                                )}
-
-                                <div className="section-divider"></div>
-
-                                {/* Benediction */}
-                                {officeContent.benediction.length > 0 && (
-                                    <div>
-                                        <div className="section-header">
-                                            🕊️ Benediction
-                                        </div>
-                                        {officeContent.benediction.map(renderPrayer)}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
+                        </main>
+                        
                         {/* Footer */}
-                        <div className="text-center mt-8 text-blue-800 text-xs md:text-sm space-y-1">
-                            <p className="font-medium">A daily rhythm of prayer and Scripture</p>
-                        </div>
+                        <footer className="text-center mt-12 text-slate-500 text-xs">
+                            <p>Content adapted from Charles Spurgeon's Morning & Evening.</p>
+                        </footer>
                     </div>
                 </div>
             );
