@@ -137,13 +137,22 @@
                 return days[date.getDay()];
             };
 
-            // REPLACE your current parseOfficeSection with this function
+            // REPLACE the existing parseOfficeSection with this block
 const parseOfficeSection = (content, sectionName, period) => {
   const lines = content.split('\n');
   let inSection = false;
   let result = [];
-  // all top-level Daily Collects headings we expect in office.txt
-  const sectionHeaders = ['Thanksgiving', 'Forgiveness', 'Meditation', 'Benediction', 'Daily Collects'];
+
+  // Add any top-level headings that can appear in office.txt
+  const sectionHeaders = [
+    'Daily Collects',
+    'Thanksgiving',
+    'Forgiveness',
+    'Meditation',
+    'Benediction',
+    'Daily Focus',
+    'Meditation',    // duplicate harmless
+  ];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -154,36 +163,49 @@ const parseOfficeSection = (content, sectionName, period) => {
       continue;
     }
 
-    // if we're inside the target section but encounter another section header, stop
+    // if we've entered the requested section but encounter another top-level heading, stop
     if (inSection && sectionHeaders.includes(line) && line !== sectionName) {
       break;
     }
 
-    // collect MORNING / EVENING entries for the requested period (period is 'morning' or 'evening')
+    // collect MORNING / EVENING entries for the requested period
     if (inSection && line.startsWith(period.toUpperCase())) {
-      // extract the short title after "MORNING - " or "EVENING - "
-      const prayerLine = line.substring(period.length + 3);
+      // Extract title after "MORNING - " or "EVENING - "
+      const prayerLine = line.substring(period.length + 3).trim();
       let verseLines = [];
 
+      // Collect subsequent lines as the verse/body, but stop if we hit:
+      // - another MORNING/EVENING block
+      // - any top-level section header (e.g. Forgiveness)
+      // - or a double blank line (end of paragraph area)
       for (let j = i + 1; j < lines.length; j++) {
-        const nextLine = lines[j].trim();
+        const nextLine = (lines[j] || '').trim();
 
-        // stop if we reach another MORNING/EVENING block or a blank double-line
-        if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || 
-            (nextLine === '' && lines[j+1]?.trim() === '')) {
-          break;
+        if (!nextLine) {
+          // stop if there's a blank line followed by another blank line or a section header
+          const lookahead = (lines[j + 1] || '').trim();
+          if (!lookahead || sectionHeaders.includes(lookahead)) break;
+          // otherwise allow single blank lines inside text (ignore them)
+          continue;
         }
-        if (nextLine) {
-          verseLines.push(nextLine);
-        }
+
+        if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING')) break;
+        if (sectionHeaders.includes(nextLine)) break;
+
+        verseLines.push(nextLine);
       }
 
+      // Only add non-empty text entries
+      const text = verseLines.join(' ').trim();
       result.push({
         title: prayerLine,
-        text: verseLines.join(' ')
+        text: text
       });
     }
+  }
 
+  return result;
+};
     // fallback safety: if we're in section and we find a line that suggests end-of-section (focus or Daily Collects), break
     if (inSection && line && !line.startsWith(period.toUpperCase()) &&
         !line.startsWith('MORNING') && !line.startsWith('EVENING') &&
