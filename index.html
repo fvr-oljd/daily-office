@@ -41,7 +41,7 @@
         .prose h2 {
             font-family: 'Noto Serif Display', Georgia, serif;
             font-weight: 500;
-            font-size: 1.4em; /* Slightly smaller section titles */
+            font-size: 1.4em;
             text-transform: uppercase;
             letter-spacing: 0.1em;
             text-align: center;
@@ -52,13 +52,13 @@
         .prose h4 {
             font-family: 'Noto Serif Display', Georgia, serif;
             font-weight: 600;
-            font-size: 1.1em; /* Slightly smaller prayer titles */
+            font-size: 1.1em;
             margin-bottom: 0.5em;
             color: #404040;
         }
         .prose p {
             font-family: 'Noto Serif Display', Georgia, serif;
-            font-size: 1rem; /* Reduced base font size */
+            font-size: 1rem;
             line-height: 1.75;
             color: #262626;
         }
@@ -73,6 +73,7 @@
             font-style: italic;
             font-size: 0.9em;
             margin-top: 0.5rem;
+            display: block; /* Ensures it's on its own line */
         }
     </style>
 </head>
@@ -127,68 +128,58 @@
             };
 
             const getDayOfWeek = (dateStr) => {
+                if (!dateStr) return '';
                 const date = new Date(dateStr);
                 const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                return days[date.getDay()];
+                return days[date.getUTCDay()]; // Use getUTCDay to avoid timezone issues with date parsing
             };
 
-            const parseCollectSection = (content, sectionName, period) => {
-                const collectTitles = ['Thanksgiving', 'Forgiveness', 'Meditation', 'Benediction'];
+            const parseOfficeFile = (content, dayName, period) => {
                 const lines = content.split('\n');
-                let inSection = false;
-                let results = [];
+                const result = {
+                    dailyFocus: [],
+                    thanksgiving: [],
+                    forgiveness: [],
+                    meditation: [],
+                    benediction: [],
+                };
+                
+                let currentSection = ''; // e.g., 'sunday focus', 'thanksgiving'
+
+                const collectTitles = ['Thanksgiving', 'Forgiveness', 'Meditation', 'Benediction'];
+                const upperPeriod = period.toUpperCase();
 
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i].trim();
 
-                    if (!inSection) {
-                        if (line === sectionName) {
-                            inSection = true;
-                        }
+                    if (line.startsWith(dayName + ' Focus:')) {
+                        currentSection = 'dailyFocus';
+                        continue;
+                    } else if (collectTitles.includes(line)) {
+                        currentSection = line.toLowerCase();
+                        continue;
+                    } else if (line.includes('Focus:') || line === 'Daily Collects') {
+                        currentSection = ''; // Reset when hitting a non-target header
                         continue;
                     }
 
-                    const isAnotherSectionTitle = collectTitles.includes(line) && line !== sectionName;
-                    if (isAnotherSectionTitle) {
-                        break; 
-                    }
-                    
-                    if (line.startsWith(period.toUpperCase())) {
-                        const prayerTitle = line.substring(period.length + 3);
+                    if (currentSection && line.startsWith(upperPeriod)) {
+                        const prayerTitle = line.substring(upperPeriod.length + 3);
                         let verseLines = [];
                         for (let j = i + 1; j < lines.length; j++) {
                             const nextLine = lines[j].trim();
-                            if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || nextLine === '') {
+                            // Stop conditions are now simpler: any blank line, new period, or any known header.
+                            if (nextLine === '' || nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || nextLine.includes('Focus:') || collectTitles.includes(nextLine) || nextLine === 'Daily Collects') {
                                 break;
                             }
                             verseLines.push(nextLine);
                         }
-                        results.push({ title: prayerTitle, text: verseLines.join(' ') });
-                    }
-                }
-                return results;
-            };
+                        const prayer = { title: prayerTitle, text: verseLines.join(' ') };
 
-            const parseDailyFocus = (content, dayName, period) => {
-                const sectionName = `${dayName} Focus:`;
-                const lines = content.split('\n');
-                let inSection = false;
-                let result = [];
-                
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (line.startsWith(sectionName)) { inSection = true; continue; }
-                    if (inSection && line.startsWith(period.toUpperCase())) {
-                        const prayerLine = line.substring(period.length + 3);
-                        let verseLines = [];
-                        for (let j = i + 1; j < lines.length; j++) {
-                            const nextLine = lines[j].trim();
-                            if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || (nextLine === '' && (lines[j+1]?.trim().includes('Focus:') || lines[j+1]?.trim() === 'Daily Collects' ))) { break; }
-                            if (nextLine) verseLines.push(nextLine);
+                        if (result[currentSection]) {
+                           result[currentSection].push(prayer);
                         }
-                        result.push({ title: prayerLine, text: verseLines.join(' ') });
                     }
-                    if (inSection && (line.includes('Focus:') || line === 'Daily Collects') && !line.startsWith(sectionName)) { break; }
                 }
                 return result;
             };
@@ -225,21 +216,21 @@
 
                 setTimeout(() => {
                     try {
-                        const date = new Date(selectedDate);
-                        let month = date.getMonth();
-                        let day = date.getDate();
-                        if (month === 1 && day === 29) { day = 28; }
+                        const date = new Date(selectedDate + 'T00:00:00'); // Ensure parsing as local time not UTC
+                        const month = date.getUTCMonth();
+                        const day = date.getUTCDate();
                         
                         const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                        const monthName = monthNames[month === 1 && day === 29 ? 1 : month]; // Handle leap day mapping to Feb
+                        const actualDay = month === 1 && day === 29 ? 28 : day; // Handle leap day mapping to Feb 28
+                        
                         const dayName = getDayOfWeek(selectedDate);
                         
+                        const parsedOffice = parseOfficeFile(officeFile, dayName, timeOfDay);
+
                         const newOfficeContent = {
-                            thanksgiving: parseCollectSection(officeFile, 'Thanksgiving', timeOfDay),
-                            forgiveness: parseCollectSection(officeFile, 'Forgiveness', timeOfDay),
-                            meditation: parseCollectSection(officeFile, 'Meditation', timeOfDay),
-                            benediction: parseCollectSection(officeFile, 'Benediction', timeOfDay),
-                            dailyFocus: parseDailyFocus(officeFile, dayName, timeOfDay),
-                            devotional: parseDevotional(devotionalFile, monthNames[month], day, timeOfDay === 'morning' ? 'AM' : 'PM'),
+                            ...parsedOffice,
+                            devotional: parseDevotional(devotionalFile, monthName, actualDay, timeOfDay === 'morning' ? 'AM' : 'PM'),
                             dayName: dayName,
                         };
                         
@@ -262,16 +253,20 @@
                 return (
                     <div className="mb-12">
                         <h2>{title}</h2>
-                        {prayers.map((p, index) => {
-                            const parts = p.text.split(/(\)/g);
-                            return (
-                                <div key={index} className="mb-6">
-                                    <h4>{p.title}</h4>
-                                    {parts.map((part, i) => {
-                                        if (part.startsWith(';
-            const currentDate = selectedDate ? new Date(selectedDate) : null;
+                        {prayers.map((p, index) => (
+                           <div key={index} className="mb-6">
+                                <h4>{p.title}</h4>
+                                <p className="whitespace-pre-line">{p.text}</p>
+                           </div>
+                        ))}
+                    </div>
+                );
+            };
+
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const currentDate = selectedDate ? new Date(selectedDate + 'T00:00:00') : null;
             const formattedDate = currentDate ? 
-                `${getDayOfWeek(selectedDate)}, ${monthNames[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()}` : '';
+                `${getDayOfWeek(selectedDate)}, ${monthNames[currentDate.getUTCMonth()]} ${currentDate.getUTCDate()}, ${currentDate.getUTCFullYear()}` : '';
 
             return (
                 <div className="min-h-screen">
@@ -335,13 +330,9 @@
                                     </div>
                                     
                                     <div className="prose prose-neutral max-w-none">
-                                        {renderPrayerSection("Thanksgiving", officeContent.thanksgiving)}
+                                        {renderPrayerSection(`${officeContent.dayName} Focus`, officeContent.dailyFocus)}
                                         <hr className="my-12 border-neutral-200" />
-                                        {renderPrayerSection("Forgiveness", officeContent.forgiveness)}
-                                        <hr className="my-12 border-neutral-200" />
-                                        {renderPrayerSection("Meditation", officeContent.meditation)}
-                                        <hr className="my-12 border-neutral-200" />
-
+                                        
                                         <div className="mb-12">
                                             <h2>
                                                 Spurgeon's Morning & Evening
@@ -357,7 +348,11 @@
                                         </div>
 
                                         <hr className="my-12 border-neutral-200" />
-                                        {renderPrayerSection(`${officeContent.dayName} Focus`, officeContent.dailyFocus)}
+                                        {renderPrayerSection("Thanksgiving", officeContent.thanksgiving)}
+                                        <hr className="my-12 border-neutral-200" />
+                                        {renderPrayerSection("Forgiveness", officeContent.forgiveness)}
+                                        <hr className="my-12 border-neutral-200" />
+                                        {renderPrayerSection("Meditation", officeContent.meditation)}
                                         <hr className="my-12 border-neutral-200" />
                                         {renderPrayerSection("Benediction", officeContent.benediction)}
                                     </div>
@@ -380,7 +375,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js')
+                navigator.service-worker.register('./service-worker.js')
                     .then(reg => console.log('Service Worker registered'))
                     .catch(err => console.log('Service Worker registration failed:', err));
             });
