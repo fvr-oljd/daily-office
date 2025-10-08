@@ -13,15 +13,20 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cardo:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
     <style>
         html {
             scroll-behavior: smooth;
         }
         body {
-            font-family: 'Noto Serif Display', Georgia, serif;
+            /* MODIFIED FONT FAMILY */
+            font-family: 'Cardo', Georgia, serif;
             background-color: #fafafa;
             color: #262626;
+        }
+        /* ADDED: Apply complimentary sans-serif font to UI controls */
+        .controls button, .controls input {
+            font-family: 'Inter', sans-serif;
         }
         .fade-in {
             animation: fadeIn 0.8s ease-in-out;
@@ -38,9 +43,12 @@
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" viewBox="0 0 24 24"><path fill="%23262626" d="M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z"/></svg>');
             cursor: pointer;
         }
+        .prose h1, .prose h2, .prose h3, .prose h4 {
+            /* MODIFIED FONT FAMILY */
+            font-family: 'Cardo', Georgia, serif;
+        }
         .prose h2 {
-            font-family: 'Noto Serif Display', Georgia, serif;
-            font-weight: 500;
+            font-weight: 700; /* Cardo's bold is 700 */
             font-size: 1.05em;
             text-transform: uppercase;
             letter-spacing: 0.08em;
@@ -50,29 +58,33 @@
             color: #262626;
         }
         .prose h4 {
-            font-family: 'Noto Serif Display', Georgia, serif;
-            font-weight: 600;
+            font-weight: 700; /* Cardo's bold is 700 */
             font-size: 0.95em;
             margin-bottom: 0.4em;
             color: #404040;
         }
         .prose p {
-            font-family: 'Noto Serif Display', Georgia, serif;
-            font-size: 0.85rem;
-            line-height: 1.6;
+            /* MODIFIED FONT FAMILY */
+            font-family: 'Cardo', Georgia, serif;
+            font-size: 0.95rem; /* Slightly increased for better readability with Cardo */
+            line-height: 1.7; /* Adjusted for new font size */
             color: #262626;
         }
         .prose em {
             font-style: italic;
         }
         .prose strong {
-            font-weight: 600;
+            font-weight: 700; /* Cardo's bold is 700 */
         }
         .prose .verse-reference {
             color: #525252;
             font-style: italic;
             font-size: 0.9em;
             margin-top: 0.5rem;
+        }
+        .header-font {
+            /* MODIFIED FONT FAMILY */
+            font-family: 'Cardo', Georgia, serif;
         }
     </style>
 </head>
@@ -287,9 +299,9 @@
             };
 
             const fontSizes = {
-                small: { h2: '0.85em', h4: '0.8em', p: '0.7rem', lh: '1.5' },
-                medium: { h2: '0.95em', h4: '0.875em', p: '0.775rem', lh: '1.55' },
-                large: { h2: '1.05em', h4: '0.95em', p: '0.85rem', lh: '1.6' }
+                small: { h2: '0.85em', h4: '0.8em', p: '0.8rem', lh: '1.6' },
+                medium: { h2: '0.95em', h4: '0.875em', p: '0.9rem', lh: '1.65' },
+                large: { h2: '1.05em', h4: '0.95em', p: '0.95rem', lh: '1.7' }
             };
 
             const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -301,16 +313,17 @@
                 <div className="min-h-screen">
                     <div className="max-w-4xl mx-auto px-6 lg:px-8 py-12">
                         <header className="text-center pt-8 pb-12">
-                            <h1 className="serif text-5xl md:text-6xl font-bold text-neutral-900 mb-2 tracking-tight">
+                            <h1 className="header-font text-5xl md:text-6xl font-bold text-neutral-900 mb-2 tracking-tight">
                                 Daily Office
                             </h1>
-                            <p className="text-neutral-600 text-lg serif italic">
+                            <p className="header-font text-neutral-600 text-lg italic">
                                 A rhythm of prayer & devotion
                             </p>
                         </header>
 
                         <div className="sticky top-0 z-10 py-6 bg-neutral-50/80 backdrop-blur-sm border-b border-neutral-200 mb-10">
-                           <div className="flex flex-col gap-4 items-center justify-center">
+                           {/* ADDED CLASSNAME "controls" to parent div */}
+                           <div className="flex flex-col gap-4 items-center justify-center controls">
                                 <input
                                     type="date"
                                     value={selectedDate}
@@ -372,10 +385,10 @@
                             {!loading && !error && officeContent && (
                                 <div className="bg-white rounded-xl shadow-xl p-8 md:p-12 border border-neutral-200 fade-in">
                                     <div className="text-center mb-12 pb-8 border-b border-neutral-200">
-                                        <h1 className="serif text-4xl md:text-5xl font-bold text-neutral-900 mb-2">
+                                        <h1 className="header-font text-4xl md:text-5xl font-bold text-neutral-900 mb-2">
                                             {timeOfDay === 'morning' ? 'Morning' : 'Evening'} Prayer
                                         </h1>
-                                        <p className="text-neutral-500 font-medium text-lg italic">{formattedDate}</p>
+                                        <p className="header-font text-neutral-500 font-medium text-lg italic">{formattedDate}</p>
                                     </div>
                                     
                                     <div className="prose prose-neutral max-w-none">
