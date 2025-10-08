@@ -137,49 +137,63 @@
                 return days[date.getDay()];
             };
 
-            const parseOfficeSection = (content, sectionName, period) => {
-                const lines = content.split('\n');
-                let inSection = false;
-                let result = [];
-                
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    
-                    if (line === sectionName) {
-                        inSection = true;
-                        continue;
-                    }
-                    
-                    if (inSection && line.startsWith(period.toUpperCase())) {
-                        const prayerLine = line.substring(period.length + 3);
-                        let verseLines = [];
-                        
-                        for (let j = i + 1; j < lines.length; j++) {
-                            const nextLine = lines[j].trim();
-                            if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || 
-                                nextLine === '' && lines[j+1]?.trim() === '') {
-                                break;
-                            }
-                            if (nextLine) {
-                                verseLines.push(nextLine);
-                            }
-                        }
-                        
-                        result.push({
-                            title: prayerLine,
-                            text: verseLines.join(' ')
-                        });
-                    }
-                    
-                    if (inSection && line && !line.startsWith(period.toUpperCase()) && 
-                        !line.startsWith('MORNING') && !line.startsWith('EVENING') &&
-                        (line.includes('Focus:') || line === 'Daily Collects')) {
-                        break;
-                    }
-                }
-                
-                return result;
-            };
+            // REPLACE your current parseOfficeSection with this function
+const parseOfficeSection = (content, sectionName, period) => {
+  const lines = content.split('\n');
+  let inSection = false;
+  let result = [];
+  // all top-level Daily Collects headings we expect in office.txt
+  const sectionHeaders = ['Thanksgiving', 'Forgiveness', 'Meditation', 'Benediction', 'Daily Collects'];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+
+    // start when we hit the requested section header
+    if (line === sectionName) {
+      inSection = true;
+      continue;
+    }
+
+    // if we're inside the target section but encounter another section header, stop
+    if (inSection && sectionHeaders.includes(line) && line !== sectionName) {
+      break;
+    }
+
+    // collect MORNING / EVENING entries for the requested period (period is 'morning' or 'evening')
+    if (inSection && line.startsWith(period.toUpperCase())) {
+      // extract the short title after "MORNING - " or "EVENING - "
+      const prayerLine = line.substring(period.length + 3);
+      let verseLines = [];
+
+      for (let j = i + 1; j < lines.length; j++) {
+        const nextLine = lines[j].trim();
+
+        // stop if we reach another MORNING/EVENING block or a blank double-line
+        if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || 
+            (nextLine === '' && lines[j+1]?.trim() === '')) {
+          break;
+        }
+        if (nextLine) {
+          verseLines.push(nextLine);
+        }
+      }
+
+      result.push({
+        title: prayerLine,
+        text: verseLines.join(' ')
+      });
+    }
+
+    // fallback safety: if we're in section and we find a line that suggests end-of-section (focus or Daily Collects), break
+    if (inSection && line && !line.startsWith(period.toUpperCase()) &&
+        !line.startsWith('MORNING') && !line.startsWith('EVENING') &&
+        (line.includes('Focus:') || line === 'Daily Collects')) {
+      break;
+    }
+  }
+
+  return result;
+};
 
             const parseDailyFocus = (content, dayName, period) => {
                 const sectionName = `${dayName} Focus:`;
