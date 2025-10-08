@@ -53,8 +53,7 @@
             const lines = content.split('\n');
             let inSection = false;
             let result = [];
-            // A list of all possible headings to check against.
-            const allHeadings = ['Thanksgiving', 'Forgiveness', 'Meditation', 'Benediction', 'Daily Collects'];
+            const allHeadings = ['Thanksgiving', 'Forgiveness', 'Meditation', 'Benediction'];
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
@@ -64,7 +63,6 @@
                     continue;
                 }
                 
-                // If we are in the right section, but we hit another major heading, stop.
                 if (inSection && allHeadings.includes(line) && line !== sectionName) {
                     break;
                 }
@@ -76,7 +74,10 @@
                     for (let j = i + 1; j < lines.length; j++) {
                         const nextLine = lines[j].trim();
                         if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || 
-                            nextLine === '' && lines[j+1]?.trim() === '') {
+                            (nextLine === '' && lines[j+1]?.trim() === '')) {
+                            break;
+                        }
+                         if (allHeadings.includes(nextLine)) {
                             break;
                         }
                         if (nextLine) {
@@ -115,6 +116,7 @@
                     
                     for (let j = i + 1; j < lines.length; j++) {
                         const nextLine = lines[j].trim();
+                        // THIS LINE IS NOW FIXED with optional chaining '?.'
                         if (nextLine.startsWith('MORNING') || nextLine.startsWith('EVENING') || 
                             (nextLine === '' && lines[j+1]?.trim().includes('Focus:'))) {
                             break;
@@ -306,4 +308,92 @@
                             </div>
 
                             {/* Thanksgiving */}
-                            {officeContent.thanksgiving.length > 0
+                            {officeContent.thanksgiving.length > 0 && (
+                                <div className="mb-8">
+                                    <div className="section-header">
+                                        🙏 Thanksgiving
+                                    </div>
+                                    {officeContent.thanksgiving.map(renderPrayer)}
+                                </div>
+                            )}
+
+                            <div className="section-divider"></div>
+
+                            {/* Forgiveness */}
+                            {officeContent.forgiveness.length > 0 && (
+                                <div className="mb-8">
+                                    <div className="section-header">
+                                        ✝️ Forgiveness
+                                    </div>
+                                    {officeContent.forgiveness.map(renderPrayer)}
+                                </div>
+                            )}
+
+                            <div className="section-divider"></div>
+
+                            {/* Meditation */}
+                            {officeContent.meditation.length > 0 && (
+                                <div className="mb-8">
+                                    <div className="section-header">
+                                        📖 Meditation
+                                    </div>
+                                    {officeContent.meditation.map(renderPrayer)}
+                                </div>
+                            )}
+
+                            <div className="section-divider"></div>
+
+                            {/* Spurgeon Devotional */}
+                            <div className="mb-8">
+                                <div className="section-header">
+                                    📚 Spurgeon's Morning & Evening
+                                </div>
+                                <div className="fade-in">
+                                    <h4 className="serif text-xl font-semibold text-blue-900 mb-3 italic">
+                                        {officeContent.devotional.title}
+                                    </h4>
+                                    <div className="prayer-content text-gray-800">
+                                        <p className="whitespace-pre-line leading-relaxed">
+                                            {officeContent.devotional.text}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="section-divider"></div>
+
+                            {/* Daily Focus */}
+                            {officeContent.dailyFocus.length > 0 && (
+                                <div className="mb-8">
+                                    <div className="section-header">
+                                        🎯 {officeContent.dayName} Focus
+                                    </div>
+                                    {officeContent.dailyFocus.map(renderPrayer)}
+                                </div>
+                            )}
+
+                            <div className="section-divider"></div>
+
+                            {/* Benediction */}
+                            {officeContent.benediction.length > 0 && (
+                                <div>
+                                    <div className="section-header">
+                                        🕊️ Benediction
+                                    </div>
+                                    {officeContent.benediction.map(renderPrayer)}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Footer */}
+                    <div className="text-center mt-8 text-blue-800 text-xs md:text-sm space-y-1">
+                        <p className="font-medium">A daily rhythm of prayer and Scripture</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    ReactDOM.render(<DailyOffice />, document.getElementById('root'));
+</script>
